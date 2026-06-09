@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MC · 营销看板 (Marketing Dashboard)</title>
+<style>
+  :root {
+    --bg-0: #0a0e1a;
+    --bg-1: #0f1525;
+    --bg-2: #161d33;
+    --bg-3: #1c2541;
+    --line: #25304f;
+    --text-0: #e8ecf6;
+    --text-1: #a8b1cc;
+    --text-2: #6b7591;
+    --brand: #00d4a8;       /* 品牌绿（涨） */
+    --brand-2: #2a8aff;     /* 链接蓝 */
+    --warn: #ffb547;
+    --danger: #ff5572;
+    --purple: #8b5cf6;
+    --pink: #f472b6;
+    --chip-bg: #1c2541;
+    --shadow: 0 6px 24px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: radial-gradient(1200px 600px at 20% -10%, rgba(42,138,255,.12), transparent 60%),
+                radial-gradient(1000px 500px at 110% 10%, rgba(0,212,168,.10), transparent 60%),
+                var(--bg-0);
+    color: var(--text-0);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  a { color: var(--brand-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ===== Layout ===== */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+    background: rgba(15,21,37,.7);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-weight: 700; font-size: 18px; letter-spacing: .3px;
+  }
+  .brand .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%);
+    display: grid; place-items: center; color: #001b14; font-weight: 800;
+  }
+  .brand small { color: var(--text-2); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .topbar .meta { color: var(--text-2); font-size: 12px; display: flex; gap: 16px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--chip-bg); color: var(--text-1); font-size: 12px; border: 1px solid var(--line); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 8px var(--brand); }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .dot.danger { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .dot.gray { background: var(--text-2); box-shadow: none; }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 28px 80px; }
+
+  /* ===== KPI Cards ===== */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+    position: relative; overflow: hidden;
+  }
+  .kpi::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120px 80px at 100% 0%, rgba(0,212,168,.15), transparent 70%); pointer-events: none; }
+  .kpi .label { color: var(--text-2); font-size: 12px; }
+  .kpi .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .kpi .delta { font-size: 12px; margin-top: 6px; color: var(--brand); }
+  .kpi .delta.down { color: var(--danger); }
+
+  /* ===== Tabs ===== */
+  .tabs {
+    display: flex; gap: 4px; padding: 4px;
+    background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 12px; margin-bottom: 18px; width: fit-content;
+  }
+  .tab {
+    padding: 9px 16px; border-radius: 9px; cursor: pointer;
+    color: var(--text-1); font-weight: 500; font-size: 13px;
+    transition: all .15s ease; user-select: none;
+  }
+  .tab:hover { color: var(--text-0); }
+  .tab.active { background: var(--bg-3); color: var(--text-0); box-shadow: var(--shadow); }
+
+  /* ===== Toolbar ===== */
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin-bottom: 14px;
+  }
+  .input, .select {
+    background: var(--bg-1); border: 1px solid var(--line); color: var(--text-0);
+    padding: 8px 12px; border-radius: 8px; font-size: 13px; outline: none;
+  }
+  .input:focus, .select:focus { border-color: var(--brand-2); }
+  .input { min-width: 240px; }
+  .btn {
+    background: var(--brand-2); color: #fff; border: 0; padding: 8px 14px;
+    border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text-1); }
+  .btn.ghost:hover { color: var(--text-0); border-color: var(--text-1); }
+
+  /* ===== Card / Section ===== */
+  .card {
+    background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .card-head {
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-head h3 { margin: 0; font-size: 15px; }
+  .card-head .sub { color: var(--text-2); font-size: 12px; }
+
+  /* ===== Tables ===== */
+  .table { width: 100%; border-collapse: collapse; }
+  .table th, .table td { text-align: left; padding: 12px 18px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; }
+  .table th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; background: var(--bg-2); }
+  .table tr:last-child td { border-bottom: 0; }
+  .table tr:hover td { background: rgba(42,138,255,.04); }
+  .name { font-weight: 600; color: var(--text-0); }
+  .name small { display: block; color: var(--text-2); font-weight: 400; margin-top: 2px; }
+
+  /* ===== Tags / Status ===== */
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .tag.live    { background: rgba(0,212,168,.12); color: var(--brand); }
+  .tag.draft   { background: rgba(107,117,145,.18); color: var(--text-1); }
+  .tag.review  { background: rgba(255,181,71,.12); color: var(--warn); }
+  .tag.archived{ background: rgba(107,117,145,.10); color: var(--text-2); }
+  .tag.paused  { background: rgba(255,85,114,.12); color: var(--danger); }
+  .tag.ended   { background: rgba(107,117,145,.10); color: var(--text-2); }
+  .tag.planned { background: rgba(139,92,246,.15); color: var(--purple); }
+  .tag.scheduled{background: rgba(42,138,255,.15); color: var(--brand-2); }
+
+  /* ===== Budget bar ===== */
+  .bar { width: 120px; height: 6px; background: var(--bg-3); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-2)); border-radius: 999px; }
+  .bar > i.warn { background: linear-gradient(90deg, var(--warn), #ff7a45); }
+  .bar > i.danger { background: linear-gradient(90deg, var(--danger), #c0004f); }
+
+  /* ===== SOP ===== */
+  .sop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .sop {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    border: 1px solid var(--line); border-radius: 14px; padding: 18px;
+  }
+  .sop h4 { margin: 0 0 4px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .sop h4 .ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--bg-3); color: var(--brand); font-weight: 700; }
+  .sop .sub { color: var(--text-2); font-size: 12px; margin-bottom: 14px; }
+  .sop ol { margin: 0; padding-left: 18px; }
+  .sop ol li { margin-bottom: 8px; color: var(--text-1); }
+  .sop ol li b { color: var(--text-0); }
+  .sop .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chip { background: var(--chip-bg); color: var(--text-1); padding: 3px 8px; border-radius: 6px; font-size: 11px; border: 1px solid var(--line); }
+
+  /* ===== Materials grid ===== */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 18px; }
+  .mat {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column;
+    cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .mat:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.45); border-color: var(--brand-2); }
+  .mat .thumb {
+    aspect-ratio: 16/9;
+    background: linear-gradient(135deg, #1c2541 0%, #0f1525 100%);
+    position: relative; overflow: hidden;
+  }
+  .mat .thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .4s ease;
+  }
+  .mat:hover .thumb img { transform: scale(1.06); }
+  .mat .thumb::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,.7) 100%);
+    pointer-events: none;
+  }
+  .mat .thumb .badge { position: absolute; top: 8px; left: 8px; font-size: 10px; padding: 3px 8px; background: rgba(0,0,0,.65); border-radius: 4px; color: #fff; backdrop-filter: blur(4px); z-index: 2; font-weight: 600; }
+  .mat .thumb .type-badge { position: absolute; bottom: 8px; right: 8px; font-size: 10px; padding: 3px 8px; background: rgba(0,212,168,.92); border-radius: 4px; color: #001b14; font-weight: 700; z-index: 2; }
+  .mat .thumb .view-hint { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 600; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 1; }
+  .mat:hover .thumb .view-hint { opacity: 1; }
+  .mat .thumb.no-img { background: linear-gradient(135deg, #1c2541 0%, #0f1525 100%); }
+  .mat .thumb.no-img::before { content: "🖼"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 38px; color: var(--brand); }
+  .mat .body { padding: 12px 14px; }
+  .mat .title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .mat .desc { color: var(--text-2); font-size: 12px; line-height: 1.5; margin-bottom: 10px; min-height: 36px; }
+  .mat .meta { display: flex; justify-content: space-between; align-items: center; }
+  .mat .langs { display: flex; gap: 4px; }
+  .lang { font-size: 10px; padding: 2px 6px; background: var(--bg-3); border-radius: 4px; color: var(--text-1); }
+  .lang.active { background: var(--brand-2); color: #fff; }
+
+  /* ===== Channels ===== */
+  .channels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 18px; }
+  .ch {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px; text-align: center;
+  }
+  .ch .ic { font-size: 18px; margin-bottom: 4px; }
+  .ch .nm { font-size: 12px; color: var(--text-1); }
+  .ch .v { font-size: 16px; font-weight: 700; }
+
+  /* ===== Footer ===== */
+  .footer {
+    margin-top: 32px; padding: 18px 28px; color: var(--text-2); font-size: 12px;
+    border-top: 1px solid var(--line); text-align: center;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 980px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .sop-grid, .grid { grid-template-columns: 1fr; }
+    .channels { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .kpis { grid-template-columns: 1fr; }
+    .channels { grid-template-columns: repeat(2, 1fr); }
+    .wrap { padding: 16px; }
+  }
+
+  /* ===== Section visibility ===== */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ===== Modal ===== */
+  .modal-mask {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-mask.open { display: flex; }
+  .modal {
+    width: min(560px, 92vw);
+    background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal h3 { margin: 0 0 12px; }
+  .modal .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .modal .row:last-child { border-bottom: 0; }
+  .modal .row .k { color: var(--text-2); }
+  .modal .row .v { color: var(--text-0); font-weight: 500; text-align: right; max-width: 60%; }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">M</div>
+    <div>
+      MC · 营销看板
+      <small>Marketing Command Center</small>
+    </div>
+  </div>
+  <div class="meta">
+    <span class="pill"><span class="dot"></span> 数据更新于 2026-06-05 09:15 HKT</span>
+    <span class="pill">FY26 Q2 · Wk 10</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- KPIs -->
+  <section class="kpis">
+    <div class="kpi">
+      <div class="label">在跑活动</div>
+      <div class="value" id="kpi-camp">—</div>
+      <div class="delta">▲ 2 vs 上周</div>
+    </div>
+    <div class="kpi">
+      <div class="label">本月营销预算 · 已用</div>
+      <div class="value" id="kpi-budget">—</div>
+      <div class="delta">占月度预算 64%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">物料库 (已上架)</div>
+      <div class="value" id="kpi-mat">—</div>
+      <div class="delta">▲ 8 本周新增</div>
+    </div>
+    <div class="kpi">
+      <div class="label">本周新客 CAC (USD)</div>
+      <div class="value" id="kpi-cac">—</div>
+      <div class="delta down">▼ 4.2% vs 上周</div>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-target="sec-materials">📦 营销物料库</div>
+    <div class="tab" data-target="sec-campaigns">📈 渠道 / 活动看板</div>
+    <div class="tab" data-target="sec-sop">📋 营销 SOP</div>
+    <div class="tab" data-target="sec-channels">🌐 渠道总览</div>
+  </div>
+
+  <!-- ====== Section 1: Materials ====== -->
+  <section class="section active" id="sec-materials">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>营销物料库</h3>
+          <div class="sub">文案 / 海报 / 落地页素材 · 按类型 / 语言 / 状态筛选</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn ghost" onclick="alert('演示数据 · 真实环境对接 DAM 素材库')">+ 新建物料</button>
+          <button class="btn" onclick="window.print()">导出 / 打印</button>
+        </div>
+      </div>
+
+      <div class="toolbar" style="padding: 14px 18px 0;">
+        <input class="input" id="mat-search" placeholder="搜索物料名 / 标签 …" />
+        <select class="select" id="mat-type">
+          <option value="">全部类型</option>
+          <option>文案 (Copy)</option>
+          <option>海报 (Poster)</option>
+          <option>落地页 (Landing Page)</option>
+          <option>短视频 (Short Video)</option>
+          <option>Banner</option>
+          <option>Email EDM</option>
+        </select>
+        <select class="select" id="mat-lang">
+          <option value="">全部语言</option>
+          <option>繁體中文</option>
+          <option>简体中文</option>
+          <option>English</option>
+          <option>日本語</option>
+          <option>한국어</option>
+          <option>Tiếng Việt</option>
+        </select>
+        <select class="select" id="mat-status">
+          <option value="">全部状态</option>
+          <option value="live">已上架</option>
+          <option value="review">审核中</option>
+          <option value="draft">草稿</option>
+          <option value="archived">已归档</option>
+        </select>
+        <span class="pill" style="margin-left:auto"><span class="dot gray"></span><span id="mat-count">0</span> 条结果</span>
+      </div>
+
+      <div class="grid" id="mat-grid"></div>
+    </div>
+  </section>
+
+  <!-- ====== Section 2: Campaigns ====== -->
+  <section class="section" id="sec-campaigns">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>当前营销活动</h3>
+          <div class="sub">覆盖付费、社媒、KOL、联盟营销与品牌活动</div>
+        </div>
+        <span class="pill"><span class="dot"></span>实时同步中</span>
+      </div>
+
+      <div class="toolbar" style="padding: 14px 18px 0;">
+        <input class="input" id="camp-search" placeholder="搜索活动名 / 负责人 …" />
+        <select class="select" id="camp-status">
+          <option value="">全部状态</option>
+          <option value="live">进行中</option>
+          <option value="scheduled">已排期</option>
+          <option value="paused">已暂停</option>
+          <option value="planned">计划中</option>
+          <option value="ended">已结束</option>
+        </select>
+        <select class="select" id="camp-channel">
+          <option value="">全部渠道</option>
+          <option>Google Ads</option>
+          <option>Meta Ads</option>
+          <option>TikTok Ads</option>
+          <option>X / Twitter</option>
+          <option>YouTube</option>
+          <option>KOL 合作</option>
+          <option>联盟营销</option>
+          <option>线下活动</option>
+        </select>
+        <span class="pill" style="margin-left:auto"><span class="dot warn"></span>预算预警 1</span>
+      </div>
+
+      <table class="table" id="camp-table">
+        <thead>
+          <tr>
+            <th>活动名</th>
+            <th>渠道</th>
+            <th>预算 (USD)</th>
+            <th>消耗进度</th>
+            <th>状态</th>
+            <th>负责人</th>
+            <th>周期</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== Section 3: SOP ====== -->
+  <section class="section" id="sec-sop">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>营销 SOP（标准作业流程）</h3>
+          <div class="sub">物料制作 · 多语言本地化 · KOL 合作 · 全流程合规与排期</div>
+        </div>
+        <span class="pill"><span class="dot"></span>FY26 v3.2</span>
+      </div>
+
+      <div style="padding: 18px;">
+        <div class="sop-grid">
+
+          <!-- SOP 1 -->
+          <div class="sop">
+            <h4><span class="ico">1</span> 物料制作流程</h4>
+            <div class="sub">从需求到上架 · 平均周期 5–7 个工作日</div>
+            <ol>
+              <li><b>需求提报</b> · 业务/产品方在 Asana 提交 Brief（含目标受众、卖点、KPI）</li>
+              <li><b>创意策划</b> · 创意组输出 3 版 Concept，由市场负责人 review</li>
+              <li><b>文案撰写</b> · 中文母版 + 卖点对齐，合规初步审核</li>
+              <li><b>视觉设计</b> · 设计师出稿，符合品牌 VI Token</li>
+              <li><b>合规审核</b> · 法务 / 合规双签（涉及 ROI、保本、收益承诺必走）</li>
+              <li><b>上线发布</b> · 同步至 DAM 素材库 + 渠道投放后台</li>
+              <li><b>效果复盘</b> · 7 日、30 日表现数据回收</li>
+            </ol>
+            <div class="meta">
+              <span class="chip">Asana</span><span class="chip">Figma</span><span class="chip">合规 Checklist</span>
+            </div>
+          </div>
+
+          <!-- SOP 2 -->
+          <div class="sop">
+            <h4><span class="ico">2</span> 多语言本地化流程</h4>
+            <div class="sub">支持 6 种语言 · 母语级本地化 + 区域合规适配</div>
+            <ol>
+              <li><b>源文锁定</b> · 中文 / 英文母版由市场+产品联合确认</li>
+              <li><b>机翻 + 术语库</b> · DeepL + 内部 Crypto/BiXin 术语库（1300+ 词条）</li>
+              <li><b>母语译者润色</b> · 签约译者交付（覆盖 繁中 / 简中 / EN / JA / KO / VI）</li>
+              <li><b>文化适配</b> · 替换本地梗、币种、支付方式、监管提示</li>
+              <li><b>合规复核</b> · 区域合规官复核（如日本 FSA、越南央行提示语）</li>
+              <li><b>双语 QA</b> · 双语 PM 交叉检查关键术语、数字、链接</li>
+              <li><b>入库上线</b> · 落地页与广告同步切换语言版本</li>
+            </ol>
+            <div class="meta">
+              <span class="chip">DeepL</span><span class="chip">Smartling</span><span class="chip">术语库 1300+</span>
+            </div>
+          </div>
+
+          <!-- SOP 3 -->
+          <div class="sop">
+            <h4><span class="ico">3</span> KOL 合作流程</h4>
+            <div class="sub">筛选 → 签约 → 内容审核 → 上线 → 复盘</div>
+            <ol>
+              <li><b>选号筛选</b> · 第三方数据（NoxInfluencer / HypeAuditor）筛查粉丝质量、互动率</li>
+              <li><b>分级入库</b> · S/A/B/C 分级，附粉丝画像与历史合作 ROI</li>
+              <li><b>Brief 下发</b> · 标准化 Brief 包（含合规红线、必含卖点、可选角度）</li>
+              <li><b>内容审核</b> · 合规必审 8 项：无收益承诺 / 无拉踩 / 披露赞助 / 风险提示</li>
+              <li><b>上线监控</b> · 72h 内监控评论、私信、违规，引导至官方</li>
+              <li><b>效果归因</b> · UTM + 专属 promo code 回收 CPA / LTV</li>
+              <li><b>续约/下线</b> · 季度复盘进入下一轮筛选</li>
+            </ol>
+            <div class="meta">
+              <span class="chip">NoxInfluencer</span><span class="chip">合规 8 项</span><span class="chip">UTM 追踪</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Compliance quick-ref -->
+        <div style="margin-top: 18px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 16px;">
+          <div style="font-weight: 600; margin-bottom: 8px;">🛡 合规红线速查（适用于上述所有流程）</div>
+          <div style="color: var(--text-1); font-size: 12.5px; line-height: 1.8;">
+            · <b style="color:var(--danger)">禁止</b> 任何「保本 / 稳赚 / 翻倍」收益承诺；<br>
+            · <b style="color:var(--danger)">禁止</b> 展示具体盈利用户案例（仅可展示策略/教学）；<br>
+            · 必含 <b>风险提示语</b>（如「加密资产价格波动剧烈，可能损失全部本金」）；<br>
+            · 受邀 KOL 必须在显著位置披露 <b>赞助关系</b>（#ad / #赞助）；<br>
+            · 不同地区需附对应监管标识（香港 SFC、日本 FSA、欧洲 MiCA 等）。
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== Section 4: Channels ====== -->
+  <section class="section" id="sec-channels">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>渠道表现总览（本月迄今）</h3>
+          <div class="sub">覆盖付费、社媒、内容、私域、联盟、线下</div>
+        </div>
+        <span class="pill"><span class="dot"></span>MTD</span>
+      </div>
+      <div class="channels" id="ch-grid"></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    MC · 营销看板 · 示例数据用于内部演示 · 静态部署 · 可被任意 iframe 嵌入
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-mask" id="modal" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+/* ============== Sample Data ============== */
+const MATERIALS = [
+  { name:"BTC 现货交易主视觉", type:"海报 (Poster)", langs:["繁中","简中","EN","JA","KO","VI"], status:"live", desc:"BTC/USDC 现货交易主视觉,突出 24/7 流动性与低手续费。", link:"#btc-spot-poster", tag:"热点", img:"https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=340&fit=crop&q=80" },
+  { name:"新用户注册奖励落地页", type:"落地页 (Landing Page)", langs:["繁中","简中","EN"], status:"live", desc:"新用户 $30 体验金 + 0 手续费 7 日,注册转化率目标 4.2%。", link:"#lp-signup-bonus", tag:"拉新", img:"https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=340&fit=crop&q=80" },
+  { name:"合约交易 100x 杠杆系列文案", type:"文案 (Copy)", langs:["繁中","简中","EN","JA","KO"], status:"review", desc:"Facebook / X 投放用,3 套方向:风险型 / 机会型 / 教学型。", link:"#copy-100x", tag:"再营销", img:"https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=600&h=340&fit=crop&q=80" },
+  { name:"YouTube Shorts · 60s 教学", type:"短视频 (Short Video)", langs:["EN","JA"], status:"live", desc:"60s 演示从注册到第一笔交易,带字幕和品牌色角标。", link:"#yt-shorts-60s", tag:"内容", img:"https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600&h=340&fit=crop&q=80" },
+  { name:"夏季交易节 · Banner 套图", type:"Banner", langs:["繁中","简中","EN","JA","KO","VI","TH"], status:"live", desc:"12 张尺寸(网页/移动/邮箱头图),主色绿蓝渐变。", link:"#summer-fest-banner", tag:"季节", img:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=340&fit=crop&q=80" },
+  { name:"VIP 等级权益 EDM", type:"Email EDM", langs:["繁中","EN"], status:"scheduled", desc:"VIP1-VIP5 权益升级,排期 2026-06-08 09:00 HKT 群发。", link:"#edm-vip-tier", tag:"私域", img:"https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=340&fit=crop&q=80" },
+  { name:"KOL 招募计划 H5", type:"落地页 (Landing Page)", langs:["繁中","简中","EN","JA","KO","VI"], status:"live", desc:"联盟营销 KOL 招募,首月 30% 分成,带申请表单。", link:"#lp-kol-recruit", tag:"KOL", img:"https://images.unsplash.com/photo-1611605698335-8b1569810432?w=600&h=340&fit=crop&q=80" },
+  { name:"ETH 合并周年纪念海报", type:"海报 (Poster)", langs:["EN","繁中"], status:"archived", desc:"2025/09 节点纪念,已下线归档。", link:"#eth-merge-anniv", tag:"纪念", img:"https://images.unsplash.com/photo-1620266757065-5814239881fd?w=600&h=340&fit=crop&q=80" },
+  { name:"Web3 钱包教学长图文案", type:"文案 (Copy)", langs:["简中","EN"], status:"draft", desc:"小红书 / Medium 投放,2000 字教学 + 配图。", link:"#copy-wallet-guide", tag:"内容", img:"https://images.unsplash.com/photo-1639762681057-408e52192e55?w=600&h=340&fit=crop&q=80" },
+  { name:"机构客户白皮书 (中文版)", type:"落地页 (Landing Page)", langs:["繁中","简中","EN"], status:"review", desc:"机构托管、OTC、API 解决方案 8 页内容。", link:"#lp-institution", tag:"B 端", img:"https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=340&fit=crop&q=80" },
+  { name:"圣诞节 · 限量 NFT 活动文案", type:"文案 (Copy)", langs:["繁中","EN","JA"], status:"planned", desc:"活动预热 + 倒计时 + 抢购三段式,排期 12 月。", link:"#copy-xmas-nft", tag:"节日", img:"https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=600&h=340&fit=crop&q=80" },
+  { name:"App 下载引导 · App Store / Google Play", type:"Banner", langs:["繁中","简中","EN","JA","KO","VI"], status:"live", desc:"顶部 sticky bar + 落地页 hero,带 ASO 关键词。", link:"#banner-appdl", tag:"拉新", img:"https://images.unsplash.com/photo-1556656793-08538906a9f8?w=600&h=340&fit=crop&q=80" },
+];
+
+const CAMPAIGNS = [
+  { name:"新用户 7 日 0 手续费", ch:"Google Ads", budget:120000, spent:84000, status:"live", owner:"Cherry L.", period:"06/01 – 06/30", desc:"搜索 + PMAX 投放,重点关键词:加密货币交易、虚拟货币平台、USDC 入金。CAC 目标 ≤ $38。" },
+  { name:"合约交易 · 100x 杠杆再营销", ch:"Meta Ads", budget:60000, spent:52000, status:"live", owner:"Marcus W.", period:"05/15 – 06/15", desc:"再营销近 30 天访问未下单用户,LAL 1% 相似受众,文案 3 套 A/B。" },
+  { name:"KOL · 香港财经 KOL 合作 Q2", ch:"KOL 合作", budget:250000, spent:162000, status:"live", owner:"Iris T.", period:"04/01 – 06/30", desc:"10 位 S 级 + 20 位 A 级财经 / 加密 KOL,带专属 promo code 与 UTM。" },
+  { name:"夏季交易节 · 全球品牌活动", ch:"X / Twitter", budget:80000, spent:12500, status:"scheduled", owner:"Eric H.", period:"07/01 – 07/31", desc:"7 月 1 日全球同步启动,礼品卡 + 0 手续费 + 排行榜三重玩法。" },
+  { name:"机构客户推介计划", ch:"线下活动", budget:150000, spent:12000, status:"planned", owner:"Vivian Z.", period:"Q3 启动", desc:"香港 + 新加坡 4 场路演,目标触达 200 家家办 / 资管。" },
+  { name:"TikTok 短视频挑战赛 #BTCChallenge", ch:"TikTok Ads", budget:50000, spent:48500, status:"paused", owner:"Marcus W.", period:"05/01 – 05/31", desc:"UGC 挑战赛,因 ROI 低于阈值 0.8 暂停,准备 6 月改版重启。" },
+  { name:"YouTube 创作者合作 · 加密教学系列", ch:"YouTube", budget:90000, spent:36000, status:"live", owner:"Iris T.", period:"05/20 – 07/31", desc:"6 位 YouTuber 长视频(8-15 分钟)教学 + 评测,深度内容种草。" },
+  { name:"联盟营销 · 全球 CPS", ch:"联盟营销", budget:0, spent:0, status:"live", owner:"Cherry L.", period:"持续", desc:"按效果分成,目前活跃 affiliate 320 位,MTD 带来 $580K 交易量。" },
+  { name:"EDM · 沉睡用户唤醒", ch:"Email EDM", budget:3000, spent:1200, status:"live", owner:"Eric H.", period:"06/03 – 06/10", desc:"针对 90 天未登录用户,4 段式邮件序列,目标唤醒 12%。" },
+  { name:"越南市场 · 本地化拉新", ch:"Meta Ads", budget:40000, spent:38500, status:"live", owner:"Vivian Z.", period:"05/15 – 06/15", desc:"越南本地化素材 18 套,本地支付/银行演示视频,合规提示语适配。" },
+];
+
+const CHANNELS = [
+  { ic:"G",  nm:"Google Ads",  v:"$48.2K" },
+  { ic:"f",  nm:"Meta Ads",   v:"$36.8K" },
+  { ic:"♪",  nm:"TikTok Ads", v:"$22.1K" },
+  { ic:"𝕏", nm:"X / Twitter", v:"$15.4K" },
+  { ic:"▶", nm:"YouTube",     v:"$28.7K" },
+  { ic:"K",  nm:"KOL 合作",    v:"$162K" },
+  { ic:"🔗", nm:"联盟营销",   v:"$0 (CPS)" },
+  { ic:"📧", nm:"EDM",        v:"$1.2K" },
+  { ic:"📍", nm:"线下活动",   v:"$12K" },
+  { ic:"T",  nm:"Telegram",   v:"社区运营" },
+  { ic:"D",  nm:"Discord",    v:"社区运营" },
+  { ic:"M",  nm:"Medium/博客",v:"内容种草" },
+];
+
+/* ============== Render: Materials ============== */
+const matGrid = document.getElementById("mat-grid");
+const matCount = document.getElementById("mat-count");
+const matSearch = document.getElementById("mat-search");
+const matType = document.getElementById("mat-type");
+const matLang = document.getElementById("mat-lang");
+const matStatus = document.getElementById("mat-status");
+
+function statusLabel(s){
+  return { live:"已上架", review:"审核中", draft:"草稿", archived:"已归档", scheduled:"已排期" }[s] || s;
+}
+function shortType(t){
+  return t.replace(/\s*\(.*\)/, "");
+}
+function renderMaterials(){
+  const q = matSearch.value.toLowerCase().trim();
+  const tp = matType.value;
+  const ln = matLang.value;
+  const st = matStatus.value;
+  const list = MATERIALS.filter(m => {
+    if (q && !(m.name.toLowerCase().includes(q) || m.tag.toLowerCase().includes(q) || m.desc.toLowerCase().includes(q))) return false;
+    if (tp && m.type !== tp) return false;
+    if (ln && !m.langs.includes(ln)) return false;
+    if (st && m.status !== st) return false;
+    return true;
+  });
+  matCount.textContent = list.length;
+  matGrid.innerHTML = list.map(m => {
+    const idx = MATERIALS.indexOf(m);
+    return `
+    <div class="mat" data-id="${idx}">
+      <div class="thumb">
+        <img src="${m.img}" alt="${m.name}" loading="lazy" onerror="this.remove();this.parentElement.classList.add('no-img');" />
+        <span class="badge">${m.tag}</span>
+        <span class="type-badge">${shortType(m.type)}</span>
+        <span class="view-hint">點擊查看詳情 →</span>
+      </div>
+      <div class="body">
+        <div class="title">${m.name}</div>
+        <div class="desc">${m.desc}</div>
+        <div class="meta">
+          <div class="langs">${m.langs.slice(0,4).map(l=>`<span class="lang${l==='繁體中文'||l==='繁中'?' active':''}">${l}</span>`).join("")}${m.langs.length>4?`<span class="lang">+${m.langs.length-4}</span>`:""}</div>
+          <span class="tag ${m.status}">● ${statusLabel(m.status)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join("") || `<div style="grid-column:1/-1;color:var(--text-2);text-align:center;padding:30px;">无匹配物料</div>`;
+}
+[matSearch, matType, matLang, matStatus].forEach(el => el.addEventListener("input", renderMaterials));
+
+// 事件委托：监听物料卡片点击（替代 inline onclick，避免子元素拦截）
+matGrid.addEventListener("click", e => {
+  const card = e.target.closest(".mat");
+  if (!card) return;
+  const id = parseInt(card.dataset.id, 10);
+  if (!isNaN(id) && id >= 0 && id < MATERIALS.length) {
+    openMaterial(id);
+  }
+});
+
+function openMaterial(i){
+  const m = MATERIALS[i];
+  if (!m) { console.warn("Material not found:", i); return; }
+  const safeLink = (m.link || "#").replace(/['"<>&]/g, c => ({ "'":"&apos;", '"':"&quot;", "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c]));
+  const safeImg = (m.img || "").replace(/['"<>&]/g, c => ({ "'":"&apos;", '"':"&quot;", "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c]));
+  document.getElementById("modal-body").innerHTML = `
+    <div style="width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,#1c2541,#0f1525);">
+      <img src="${safeImg}" alt="${m.name}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'" />
+    </div>
+    <h3 style="margin:0 0 12px;">${m.name}</h3>
+    <div class="row"><span class="k">类型</span><span class="v">${m.type}</span></div>
+    <div class="row"><span class="k">语言版本</span><span class="v">${m.langs.join(" · ")}</span></div>
+    <div class="row"><span class="k">状态</span><span class="v"><span class="tag ${m.status}">● ${statusLabel(m.status)}</span></span></div>
+    <div class="row"><span class="k">标签</span><span class="v">${m.tag}</span></div>
+    <div class="row"><span class="k">描述</span><span class="v">${m.desc}</span></div>
+    <div class="row"><span class="k">链接</span><span class="v"><a href="${safeLink}" target="_blank" rel="noopener noreferrer">${safeLink}</a></span></div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">关闭</button>
+      <button class="btn" data-open-link="${safeLink}">打开素材 ↗</button>
+    </div>
+  `;
+  // 用事件委托给「打开素材」按钮绑定点击（新窗口打开链接）
+  const openBtn = document.querySelector('#modal-body [data-open-link]');
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      const link = openBtn.getAttribute('data-open-link');
+      if (link && link !== '#') window.open(link, '_blank', 'noopener,noreferrer');
+      else alert('该物料暂无外部链接（演示数据）');
+    });
+  }
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+
+/* ============== Render: Campaigns ============== */
+const campTbody = document.querySelector("#camp-table tbody");
+const campSearch = document.getElementById("camp-search");
+const campStatus = document.getElementById("camp-status");
+const campChannel = document.getElementById("camp-channel");
+
+function statusCampLabel(s){
+  return { live:"进行中", scheduled:"已排期", paused:"已暂停", planned:"计划中", ended:"已结束" }[s] || s;
+}
+function fmt(n){ return "$" + n.toLocaleString(); }
+function renderCampaigns(){
+  const q = campSearch.value.toLowerCase().trim();
+  const st = campStatus.value;
+  const ch = campChannel.value;
+  const list = CAMPAIGNS.filter(c => {
+    if (q && !(c.name.toLowerCase().includes(q) || c.owner.toLowerCase().includes(q))) return false;
+    if (st && c.status !== st) return false;
+    if (ch && c.ch !== ch) return false;
+    return true;
+  });
+  campTbody.innerHTML = list.map(c => {
+    const pct = c.budget ? Math.round(c.spent/c.budget*100) : 0;
+    const cls = pct >= 90 ? "danger" : (pct >= 70 ? "warn" : "");
+    return `
+    <tr>
+      <td><div class="name">${c.name}<small>${c.desc.slice(0,42)}…</small></div></td>
+      <td>${c.ch}</td>
+      <td>${fmt(c.budget)}<div style="color:var(--text-2); font-size:11px;">已用 ${fmt(c.spent)}</div></td>
+      <td><div class="bar"><i class="${cls}" style="width:${Math.min(pct,100)}%"></i></div><div style="font-size:11px;color:var(--text-2);margin-top:3px;">${pct}%</div></td>
+      <td><span class="tag ${c.status}">● ${statusCampLabel(c.status)}</span></td>
+      <td>${c.owner}</td>
+      <td style="color:var(--text-2); font-size:12px;">${c.period}</td>
+      <td><button class="btn ghost" onclick='openCampaign(${JSON.stringify(c).replace(/'/g,"&#39;")})'>查看</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="8" style="text-align:center; color:var(--text-2); padding:30px;">无匹配活动</td></tr>`;
+}
+[campSearch, campStatus, campChannel].forEach(el => el.addEventListener("input", renderCampaigns));
+
+function openCampaign(c){
+  document.getElementById("modal-body").innerHTML = `
+    <h3>${c.name}</h3>
+    <div class="row"><span class="k">渠道</span><span class="v">${c.ch}</span></div>
+    <div class="row"><span class="k">预算 / 已用</span><span class="v">${fmt(c.budget)} · ${fmt(c.spent)} (${c.budget?Math.round(c.spent/c.budget*100):0}%)</span></div>
+    <div class="row"><span class="k">状态</span><span class="v"><span class="tag ${c.status}">● ${statusCampLabel(c.status)}</span></span></div>
+    <div class="row"><span class="k">负责人</span><span class="v">${c.owner}</span></div>
+    <div class="row"><span class="k">周期</span><span class="v">${c.period}</span></div>
+    <div class="row"><span class="k">描述</span><span class="v">${c.desc}</span></div>
+    <div style="margin-top:14px; display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn ghost" onclick="closeModal()">关闭</button>
+      <button class="btn">编辑活动</button>
+    </div>
+  `;
+  document.getElementById("modal").classList.add("open");
+}
+
+/* ============== Render: Channels ============== */
+const chGrid = document.getElementById("ch-grid");
+chGrid.innerHTML = CHANNELS.map(c => `
+  <div class="ch">
+    <div class="ic" style="color: var(--brand);">${c.ic}</div>
+    <div class="v">${c.v}</div>
+    <div class="nm">${c.nm}</div>
+  </div>
+`).join("");
+
+/* ============== KPIs ============== */
+document.getElementById("kpi-camp").textContent = CAMPAIGNS.filter(c => c.status === "live").length;
+document.getElementById("kpi-budget").textContent = "$582.7K";
+document.getElementById("kpi-mat").textContent = MATERIALS.filter(m => m.status === "live").length;
+document.getElementById("kpi-cac").textContent = "$34.8";
+
+/* ============== Tabs ============== */
+document.getElementById("tabs").addEventListener("click", e => {
+  const t = e.target.closest(".tab");
+  if (!t) return;
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".section").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.target).classList.add("active");
+});
+
+/* ============== Init ============== */
+renderMaterials();
+renderCampaigns();
+</script>
+</body>
+</html>
